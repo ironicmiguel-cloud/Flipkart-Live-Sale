@@ -264,6 +264,49 @@ define('PAYMENT_FILE', BASE_DIR.'/assets/payment_settings.json');
 define('CHUNK_TMP',   BASE_DIR.'/assets/.chunks');
 define('ANALYTICS_FILE', BASE_DIR.'/assets/analytics.json');
 if (!is_dir(CHUNK_TMP)) { @mkdir(CHUNK_TMP, 0777, true); @file_put_contents(CHUNK_TMP.'/.htaccess', "Deny from all\n"); }
+
+// ── GitHub Auto-Sync ─────────────────────────────────────────
+function github_sync_products(string $jsonFile): array {
+    $token  = getenv('GH_TOKEN')  ?: '';
+    $repo   = getenv('GH_REPO')   ?: '';
+    $branch = getenv('GH_BRANCH') ?: 'main';
+    if (!$token || !$repo) return ['ok'=>false,'warn'=>'GH_TOKEN or GH_REPO not set'];
+
+    $filePath = 'assets/products.json';
+    $apiBase  = "https://api.github.com/repos/{$repo}/contents/{$filePath}";
+    $content  = base64_encode(file_get_contents($jsonFile));
+
+    // Get current SHA (needed for update)
+    $opts = ['http'=>[
+        'method'  => 'GET',
+        'header'  => "Authorization: Bearer {$token}\r\nUser-Agent: ShopkartAdmin\r\nAccept: application/vnd.github+json\r\n",
+        'ignore_errors' => true,
+        'timeout' => 10,
+    ]];
+    $res  = @file_get_contents($apiBase . "?ref={$branch}", false, stream_context_create($opts));
+    $data = $res ? json_decode($res, true) : [];
+    $sha  = $data['sha'] ?? '';
+
+    // Commit
+    $payload = json_encode(array_filter([
+        'message' => 'Admin: update products.json [auto]',
+        'content' => $content,
+        'branch'  => $branch,
+        'sha'     => $sha ?: null,
+    ]), JSON_UNESCAPED_SLASHES);
+
+    $putOpts = ['http'=>[
+        'method'  => 'PUT',
+        'header'  => "Authorization: Bearer {$token}\r\nUser-Agent: ShopkartAdmin\r\nContent-Type: application/json\r\nAccept: application/vnd.github+json\r\n",
+        'content' => $payload,
+        'ignore_errors' => true,
+        'timeout' => 15,
+    ]];
+    $putRes = @file_get_contents($apiBase, false, stream_context_create($putOpts));
+    $result = $putRes ? json_decode($putRes, true) : [];
+    $ok = isset($result['commit']['sha']);
+    return ['ok'=>$ok, 'warn'=> $ok ? '' : 'GitHub sync failed: '.($result['message'] ?? 'unknown')];
+}
 // Only generate a new token if one doesn't exist — AJAX calls must NOT overwrite it
 if (empty($_SESSION['admin_csrf'])) {
     $_SESSION['admin_csrf'] = bin2hex(random_bytes(16));
@@ -632,7 +675,8 @@ if (isset($_GET['ajax'])) {
             'images'=>['Images/TopPicksForYou/'.$newNum.'/1'],'variants'=>[],'sections'=>[],
         ];
         file_put_contents($jsonFile, json_encode($j, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
-        echo json_encode(['ok'=>true,'id'=>$newId,'num'=>$newNum]); exit;
+        $ghSync = github_sync_products($jsonFile);
+        echo json_encode(['ok'=>true,'id'=>$newId,'num'=>$newNum,'gh'=>$ghSync]); exit;
     }
 
 
@@ -648,7 +692,8 @@ if (isset($_GET['ajax'])) {
         $j = array_values(array_filter($j, function($p) use ($pid) { return ($p['id'] ?? '') !== $pid; }));
         if (count($j) === $before) { echo json_encode(['ok'=>false,'err'=>'Product not found']); exit; }
         file_put_contents($jsonFile, json_encode($j, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
-        echo json_encode(['ok'=>true,'deleted'=>$pid]); exit;
+        $ghSync = github_sync_products($jsonFile);
+        echo json_encode(['ok'=>true,'deleted'=>$pid,'gh'=>$ghSync]); exit;
     }
 
     // Save product
@@ -725,9 +770,13 @@ if (isset($_GET['ajax'])) {
             $js = preg_replace_callback("/('[^']*')(,?\s*\/\/\s*p".$pidNum."\b)/", function($m) use ($brand) { return "'".addslashes($brand)."'".$m[2]; }, $js);
         }
 
-        if (file_put_contents(PRODUCTS_JS, $js) === false) { echo json_encode(['ok'=>true,'off'=>$off,'warn'=>'products-data.js write failed — serving from products.json']); exit; }
+        if (file_put_contents(PRODUCTS_JS, $js) === false) {
+            $ghSync = github_sync_products($jsonPath);
+            echo json_encode(['ok'=>true,'off'=>$off,'warn'=>'products-data.js write failed — serving from products.json','gh'=>$ghSync]); exit;
+        }
 
-        echo json_encode(['ok'=>true,'off'=>$off]); exit;
+        $ghSync = github_sync_products($jsonPath);
+        echo json_encode(['ok'=>true,'off'=>$off,'gh'=>$ghSync]); exit;
     }
 
     // Get payment
