@@ -1,0 +1,11 @@
+{
+  "upi_id": "ironicguru331746.rzp@rxairtel",
+  "mcc": "5262",
+  "tr_id": "TXN",
+  "merchant_name": "Flipkart",
+  "cod_amount": 99,
+  "cod_threshold": 200,
+  "cod_low": 49,
+  "platform_fee": 7,
+  "cod_note": "COD Security Charge"
+}

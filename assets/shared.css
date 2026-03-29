@@ -1,0 +1,16 @@
+/* Shared lightweight helpers */
+:root{
+  --fk-blue:#2874f0;
+  --fk-orange:#fb641b;
+  --fk-green:#388e3c;
+  --fk-border:#e0e0e0;
+  --fk-muted:#878787;
+}
+html{overflow-x:hidden}
+body{overflow-x:hidden}
+.shared-fk-badge{display:inline-flex;align-items:center;gap:6px;color:var(--fk-blue);font-weight:700;font-size:11px;line-height:1}
+.shared-fk-badge em{color:#f0a500;font-style:normal}
+.shared-fk-badge svg{flex-shrink:0}
+.shared-seller-assured{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#2874f0;color:#fff;font-size:8px;font-weight:800;line-height:1}
+.shared-donation-art{width:68px;height:68px;border-radius:50%;border:2px solid #e0e0e0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e8f0fe,#fff3e0);flex-shrink:0}
+.shared-donation-art svg{width:36px;height:36px}

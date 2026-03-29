@@ -1,0 +1,17 @@
+[
+  {
+    "id": "p1",
+    "offer": "Up to 40% off",
+    "label": "Today's Deal"
+  },
+  {
+    "id": "p2",
+    "offer": "From \u20b9999",
+    "label": "Best Value"
+  },
+  {
+    "id": "p3",
+    "offer": "Limited Stock",
+    "label": "Flash Sale"
+  }
+]
