@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: shopkart
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: FK_TG_TOKEN
+        sync: false        # Set this manually in Render dashboard
+      - key: FK_TG_CHAT_ID
+        sync: false        # Set this manually in Render dashboard
+      - key: FK_DB_HOST
+        sync: false
+      - key: FK_DB_NAME
+        sync: false
+      - key: FK_DB_USER
+        sync: false
+      - key: FK_DB_PASS
+        sync: false
+    healthCheckPath: /

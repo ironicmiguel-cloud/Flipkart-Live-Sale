@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /assets/
+Disallow: /includes/
+Disallow: /admin.php
+Disallow: /seed_products.php
+Disallow: /database/
+Allow: /
+
+Sitemap: https://kartlivesale.free.nf/sitemap.xml
