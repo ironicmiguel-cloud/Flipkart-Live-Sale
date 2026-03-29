@@ -17,4 +17,8 @@ services:
         sync: false
       - key: FK_DB_PASS
         sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false        # e.g. "mycloud123"
+      - key: CLOUDINARY_UPLOAD_PRESET
+        sync: false        # e.g. "shopkart_unsigned"
     healthCheckPath: /
