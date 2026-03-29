@@ -377,20 +377,29 @@ if (isset($_GET['ajax'])) {
         }
 
         $publicId  = 'shopkart/' . $key . '_s' . $slot . '_i' . $imgnum;
-        $fileData  = 'data:' . ($mime ?: 'image/jpeg') . ';base64,' . base64_encode(file_get_contents($tmp));
-        $payload   = http_build_query(['file'=>$fileData,'upload_preset'=>$uploadPreset,'public_id'=>$publicId,'overwrite'=>'true']);
 
-        $ctx = stream_context_create(['http'=>[
-            'method'  => 'POST',
-            'header'  => "Content-Type: application/x-www-form-urlencoded\r\n",
-            'content' => $payload,
-            'timeout' => 30,
-            'ignore_errors' => true,
-        ]]);
-        $res    = @file_get_contents("https://api.cloudinary.com/v1_1/{$cloudName}/image/upload", false, $ctx);
-        $result = $res ? json_decode($res, true) : [];
+        // Use cURL multipart (reliable on Render, no allow_url_fopen needed)
+        if (!function_exists('curl_init')) {
+            echo json_encode(['ok'=>false,'err'=>'cURL not available']); exit;
+        }
+        $ch = curl_init("https://api.cloudinary.com/v1_1/{$cloudName}/image/upload");
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_POSTFIELDS     => [
+                'file'          => new CURLFile($tmp, $mime ?: 'image/jpeg', 'upload'),
+                'upload_preset' => $uploadPreset,
+                'public_id'     => $publicId,
+                'overwrite'     => 'true',
+            ],
+        ]);
+        $res     = curl_exec($ch);
+        $curlErr = curl_error($ch);
+        curl_close($ch);
+        $result = ($res && !$curlErr) ? json_decode($res, true) : [];
         if (empty($result['secure_url'])) {
-            $errMsg = $result['error']['message'] ?? 'Upload failed';
+            $errMsg = $result['error']['message'] ?? ($curlErr ?: 'Upload failed');
             echo json_encode(['ok'=>false,'err'=>'Cloudinary error: '.$errMsg]); exit;
         }
 
